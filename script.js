@@ -1,20 +1,16 @@
-let audioContext = null;
+window.AudioContext =
+	window.AudioContext || window.webkitAudioContext || window.mozAudioContext;
+
+let audioContext = new AudioContext();
 const buttons = {};
 const sounds = [];
-const audios = ['808 [Car].wav', 'Snare [Rack].wav'];
+const audios = [
+	'exported 4.m4a',
+	'808 [Car].wav',
+	'Snare [Rack].wav',
 
-window.addEventListener('load', () => {
-	try {
-		//Create the Audio Context, compatible with older Firefox and Chrome browsers
-		window.AudioContext =
-			window.AudioContext ||
-			window.webkitAudioContext ||
-			window.mozAudioContext;
-		audioContext = new AudioContext();
-	} catch (e) {
-		alert('Web Audio API is not supported in this browser');
-	}
-});
+	'_Rave Room MOJI TBR - Money (Extended Mix).mp3'
+];
 
 document.addEventListener('DOMContentLoaded', () => {
 	buttons.start = document.getElementById('start');
@@ -31,21 +27,26 @@ async function getAudioFiles() {
 		const audioFile = await audioFileLoader(audio);
 		sounds.push(audioFile);
 	}
+
+	console.log(sounds);
 }
 
 function startPlaying() {
 	sounds.forEach((sound) => {
-		sound.play(0);
+		const playSound = audioContext.createBufferSource();
+
+		playSound.buffer = sound;
+
+		//Connections inside the Play function...
+		playSound.connect(audioContext.destination);
+		playSound.start(audioContext.currentTime);
 	});
 }
 
 function audioFileLoader(fileName) {
 	return new Promise((resolve, reject) => {
 		if (fileName) {
-			const soundObj = {};
-			soundObj.fileName = fileName;
 			const source = `audios\\${fileName}`;
-			var playSound = audioContext.createBufferSource();
 
 			const getSound = new XMLHttpRequest();
 			getSound.open('GET', source, true);
@@ -53,8 +54,7 @@ function audioFileLoader(fileName) {
 			getSound.onreadystatechange = function () {
 				if (this.readyState == 4 && this.status === 200) {
 					audioContext.decodeAudioData(getSound.response, function (buffer) {
-						soundObj.soundToPlay = buffer;
-						resolve(soundObj);
+						resolve(buffer);
 					});
 				} else if (this.readyState === 4) {
 					reject({});
@@ -62,15 +62,6 @@ function audioFileLoader(fileName) {
 			};
 
 			getSound.send();
-
-			soundObj.play = function (startTime) {
-				playSound = audioContext.createBufferSource();
-				playSound.buffer = soundObj.soundToPlay;
-
-				//Connections inside the Play function...
-				playSound.connect(audioContext.destination);
-				playSound.start(audioContext.currentTime + startTime);
-			};
 		} else {
 			reject();
 		}
